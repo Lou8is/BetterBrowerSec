@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "BetterBrowerSec",
+  "version": "0.1",
+
+  "description": "Improves browser security using several modules",
+  "icons": {
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png"
+  },
+
+  "permissions": [
+    "tabs",
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["scripts/script.js"]
+  },
+
+  "browser_action": {
+    "default_icon":   "icons/icon-32.png",
+    "default_title":  "No domain blocked yet"
+  }
+
+
+}
