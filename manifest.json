@@ -17,13 +17,17 @@
   ],
 
   "background": {
-    "scripts": ["scripts/script.js"]
+    "scripts": ["scripts/script.js", "resources/tranco.js"]
+    
   },
+
+  "web_accessible_resources": [
+    "views/blocked.html"
+  ],
 
   "browser_action": {
     "default_icon":   "icons/icon-32.png",
-    "default_title":  "No domain blocked yet"
+    "default_title":  "No domain blocked yet",
+    "default_popup": "popup/popup.html"
   }
-
-
 }

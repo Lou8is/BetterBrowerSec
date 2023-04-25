@@ -1,10 +1,18 @@
 //TODO : Icon by <a href="https://freeicons.io/profile/3335">MD Badsha Meah</a> on <a href="https://freeicons.io">freeicons.io</a>
-
+//import domainlist from "../resources/tranco.js";
 var domainList = new Set();
 var debugOn = true;
 var upgradeToSecure = true;
 
 var domainsBlockedCountOnTab = new Map();
+
+var loadingStatus=0;
+
+var loadstatus = {
+    NOT_LOADED: 0,
+    LOADED: 1,
+    LOADING: 2
+};
 
 function mlog(str){
     if (debugOn)
@@ -20,6 +28,9 @@ function mlog(str){
  * @returns {boolean} result
  */
 function isDomainInList(rawUrl) {
+    //will fill the list only if it was empty
+    loadDomainsListFromJS();
+
     let begin=performance.now();
     //converts the url to an URL object for easier manipulation
     let url = new URL(rawUrl);
@@ -54,23 +65,51 @@ function isDomainInList(rawUrl) {
 }
 
 /**
+ * 
+ */
+function isDomainInAllowList(url) {
+    return false;
+}
+
+/**
  * Call the domain checking function and crafts the correct BlockingRequest as a @returns + upgrades to HTTPS is needed
  */
 function blockRequestIfUnknown(request) {
 
-    let domainInList = isDomainInList(request.url)
-
-    if (!domainInList)
-        mlog("Want to cancel domain")
-
-    updateInterface(request, domainInList);
-
-    return {
-        cancel: !domainInList,
+    //to be returned when domain is allowed
+    let allowResponse = {
+        cancel: false,
         upgradeToSecure: upgradeToSecure
     };
+
+    //request.documentUrl is defined for call within a page, we want to only test top-level calls from tabs
+    if(request.documentUrl !== undefined) {
+        return allowResponse;
+    }
+    
+    //check allowlist for domain before everything
+    if(isDomainInAllowList(request.url)) {
+        return allowResponse;
+    }
+
+    if(isDomainInList(request.url)) {
+        return allowResponse;
+    } else {
+        mlog("Want to cancel domain");
+        updateToolbarOnBlock(request);
+        return {
+            redirectUrl: browser.runtime.getURL("views/blocked.html")
+        };
+    }
 }
 
+function updateToolbarOnBlock(request) {
+
+}
+
+/**
+ * @deprecated
+ */
 function updateInterface(request, domainInList) {
     tabId = request.tabId;
     let tabCount=0;
@@ -102,19 +141,58 @@ function updateInterface(request, domainInList) {
  * Loads the 1M website list from https://tranco-list.eu/
  * At the moment, list is from april 2023
  * Performance : about 1.3 second (i9-9 ; 64GB RAM ; SSD)
+ * @deprecated
  */
-function handleStartup() {
-    let begin=performance.now();
-    let rUrl = chrome.runtime.getURL('../resources/tranco.json');
+function loadDomainsList(force=false) {
+
+    //If list is already filled and is the function is not called on purpose - avoids multiple unneeded calls
+    if(loadingStatus!==loadstatus.NOT_LOADED && !force)
+        return;
+
+    loadingStatus = loadstatus.LOADING;
+    let begin = performance.now();
+    let rUrl = browser.runtime.getURL('../resources/tranco.json');
     fetch(rUrl).then((response) => {
     return response.json();
     })
     .then((fileContent) => {
         domainList = new Set(fileContent["domain_list"]);
         let end = performance.now();
-        mlog("Startup: " + (end - begin) + " ms")
+        mlog("Load list: " + (end - begin) + " ms")
+        loadingStatus = loadstatus.LOADED;
     })
-    .catch((cause) => console.log(cause));
+    .catch((cause) => {
+        loadingStatus = loadstatus.NOT_LOADED;
+        console.log(cause)});
+}
+
+/**
+ * Loads the 1M website list from https://tranco-list.eu/
+ * At the moment, list is from april 2023
+ * Performance : about 0.5 second (i9-9 ; 64GB RAM ; SSD)
+ * @deprecated
+ */
+function loadDomainsListFromJS(force=false) {
+
+    //If list is already filled and is the function is not called on purpose - avoids multiple unneeded calls
+    if(loadingStatus!==loadstatus.NOT_LOADED && !force)
+        return;
+
+    loadingStatus = loadstatus.LOADING;
+    let begin = performance.now();
+    domainList = new Set(laliste);
+    let end = performance.now();
+    mlog("Load list: " + (end - begin) + " ms")
+    
+    if(domainList.size > 0)
+        loadingStatus = loadstatus.LOADED;
+}
+
+/**
+ * All functions regarding startup
+ */
+function handleStartup() {
+    
 }
 
 /**
